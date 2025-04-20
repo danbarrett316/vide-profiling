@@ -55,7 +55,7 @@ export default function FreeformPage() {
         <div className="col-span-1">
           {selectedVideo && (
             <NotesPanel
-              videoId={selectedVideo.id}
+              video={selectedVideo}
               mode={mode}
             />
           )}
