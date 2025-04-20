@@ -16,7 +16,7 @@ export async function OPTIONS() {
 export async function POST(request: Request) {
   console.log('API route received request')
   
-  const webhookUrl = process.env.NEXT_PUBLIC_ZAPIER_HOOK_URL
+  const webhookUrl = process.env.ZAPIER_HOOK_URL
 
   if (!webhookUrl) {
     console.error('API route: Zapier webhook URL not configured')

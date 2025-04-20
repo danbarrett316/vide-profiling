@@ -131,61 +131,32 @@ async function fetchRSSVideos(feedUrl: string): Promise<Video[]> {
       .replace(/&(?!amp;|lt;|gt;|quot;|apos;)/g, '&amp;')
       .replace(/<(\/?)[a-zA-Z0-9]+:/g, '<$1') // Remove XML namespaces
     
-    const parser = new DOMParser()
-    const xml = parser.parseFromString(responseText, 'text/xml')
+    // Use regex to extract video information
+    const videoRegex = /<entry>.*?<title>(.*?)<\/title>.*?<link.*?href="(.*?)".*?<\/entry>|<item>.*?<title>(.*?)<\/title>.*?<link>(.*?)<\/link>.*?<\/item>/gs
+    const matches = [...responseText.matchAll(videoRegex)]
     
-    // Check for parsing errors
-    const parserError = xml.querySelector('parsererror')
-    if (parserError) {
-      console.error('XML Parsing Error:', parserError.textContent)
-      console.error('Failed XML content:', responseText)
-      return []
-    }
+    console.log('Found potential videos in RSS feed:', matches.length)
     
-    const items = xml.querySelectorAll('entry, item')
-    console.log('Found RSS items:', items.length)
-    
-    if (items.length === 0) {
-      console.log('No items found in RSS feed:', feedUrl)
-      return []
-    }
-
-    const videos = Array.from(items).map((item) => {
+    const videos = matches.map(match => {
       try {
-        // Try different ways to get the video ID
-        let videoId = null
+        const title = match[1] || match[3] || ''
+        const link = match[2] || match[4] || ''
         
-        // Try standard YouTube feed format
-        videoId = item.querySelector('videoId')?.textContent
-
-        // Try link parsing if no direct video ID
-        if (!videoId) {
-          const link = item.querySelector('link')
-          if (link) {
-            const href = link.getAttribute('href') || link.textContent
-            if (href) {
-              const match = href.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^"&?\/\s]{11})/)
-              if (match) {
-                videoId = match[1]
-              }
-            }
-          }
-        }
-        
-        const title = item.querySelector('title')?.textContent || ''
-        
-        if (!videoId) {
+        // Extract video ID from URL
+        const videoIdMatch = link.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^"&?\/\s]{11})/)
+        if (!videoIdMatch) {
           console.log('Skipping item - no video ID found:', title)
           return null
         }
-
+        
+        const videoId = videoIdMatch[1]
         const video: Video = {
           id: videoId,
           title,
           url: `https://www.youtube.com/watch?v=${videoId}`,
           thumbnail: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
           source: 'rss',
-          publishedAt: item.querySelector('pubDate, published')?.textContent || new Date().toISOString()
+          publishedAt: new Date().toISOString() // We'll use current time since we can't reliably parse dates
         }
         
         console.log('Successfully processed video:', video.title)
