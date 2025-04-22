@@ -1,5 +1,9 @@
 import { Suspense } from 'react'
-import VideoAnalysis from '@/components/VideoAnalysis'
+import dynamic from 'next/dynamic'
+
+const VideoAnalysis = dynamic(() => import('@/components/VideoAnalysis'), {
+  ssr: false
+})
 
 export default function HomePage() {
   return (
